@@ -2,8 +2,6 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { envConfiguration } from './config/env.config';
 import { pinoConfigFactory } from './config/pino.config';
@@ -22,8 +20,6 @@ import { PrismaService } from './shared/services/prisma.service';
       isGlobal: true,
       validationSchema: envConfiguration,
     }),
-    ScheduleModule.forRoot(),
-    EventEmitterModule.forRoot(),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
