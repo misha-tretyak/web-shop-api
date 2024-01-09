@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Types: https://www.prisma.io/docs/concepts/database-connectors/postgresql
+// Prisma naming conventions: https://www.prisma.io/docs/concepts/components/prisma-schema/names-in-underlying-database#constraint-and-index-names
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+model User {
+  userUuid     String     @id(map: "user_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("user_uuid") @db.Uuid
+  firstName    String     @map("first_name") @db.VarChar(100)
+  lastName     String     @map("last_name") @db.VarChar(100)
+  displayName  String?    @map("display_name") @db.VarChar(255)
+  username     String     @unique(map: "user_username_key") @map("username") @db.VarChar(100)
+  userInitial  String?    @map("user_initial") @db.VarChar(100)
+  dateOfBirth  DateTime?  @map("date_of_birth") @db.Date
+  email        String     @unique(map: "user_email_key") @db.VarChar(100)
+  provider     String?    @db.VarChar(100)
+  providerId   String?    @map("provider_id") @db.VarChar(100)
+  passwordHash String?    @map("password_hash") @db.VarChar(300)
+  refreshToken String?    @map("refresh_token") @db.VarChar(300)
+  language     String?    @default("uk") @db.VarChar(100)
+  theme        ThemeEnum? @default(AUTO)
+
+  address Address?
+  roles   Role[]
+  orders  Order[]
+  reviews Review[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@index([username])
+  @@map("user")
+}
+
+model Role {
+  roleUuid String   @id(map: "role_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("role_uuid") @db.Uuid
+  name     RoleEnum @unique
+
+  users User[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([name])
+  @@map("role")
+}
+
+model Product {
+  productUuid String  @id(map: "product_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("product_uuid") @db.Uuid
+  name        String  @db.VarChar(100)
+  description String  @db.VarChar(500)
+  price       Decimal @db.Decimal(10, 2)
+  color       String? @db.VarChar(50)
+  stock       Int     @db.Integer
+
+  categories Category[]
+  reviews    Review[]
+  images     Image[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("product")
+}
+
+model Image {
+  imageUuid        String @id(map: "image_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("image_uuid") @db.Uuid
+  source           String @db.VarChar(255)
+  filename         String @db.VarChar(255)
+  originalFilename String @map("original_filename") @db.VarChar(255)
+  mimetype         String @db.VarChar(100)
+  fileId           String @map("file_id") @db.VarChar(100)
+
+  productUuid  String?   @map("product_uuid") @db.Uuid
+  product      Product?  @relation(fields: [productUuid], references: [productUuid], onDelete: NoAction, onUpdate: NoAction, map: "image_product_uuid_fkey")
+  categoryUuid String?   @map("category_uuid") @db.Uuid
+  category     Category? @relation(fields: [categoryUuid], references: [categoryUuid], onDelete: NoAction, onUpdate: NoAction, map: "image_category_uuid_fkey")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("image")
+}
+
+model Category {
+  categoryUuid String @id(map: "category_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("category_uuid") @db.Uuid
+  name         String @unique @db.VarChar(100)
+
+  products Product[]
+  images   Image[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("category")
+}
+
+model Order {
+  orderUuid  String          @id(map: "order_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("order_uuid") @db.Uuid
+  totalPrice Decimal         @map("total_price") @db.Decimal(10, 2)
+  status     OrderStatusEnum @default(PENDING)
+
+  userUuid String @map("user_uuid") @db.Uuid
+  user     User   @relation(fields: [userUuid], references: [userUuid], onDelete: NoAction, onUpdate: NoAction, map: "order_user_uuid_fkey")
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("order")
+}
+
+model OrderItem {
+  orderItemUuid String  @id(map: "order_item_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("order_item_uuid") @db.Uuid
+  quantity      Int     @db.Integer
+  price         Decimal @db.Decimal(10, 2)
+
+  orderUuid   String  @map("order_uuid") @db.Uuid
+  order       Order   @relation(fields: [orderUuid], references: [orderUuid], onDelete: NoAction, onUpdate: NoAction, map: "order_item_order_uuid_fkey")
+  productUuid String  @map("product_uuid") @db.Uuid
+  product     Product @relation(fields: [productUuid], references: [productUuid], onDelete: NoAction, onUpdate: NoAction, map: "order_item_product_uuid_fkey")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("order_item")
+}
+
+model Address {
+  addressUuid   String @id(map: "address_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("address_uuid") @db.Uuid
+  streetAddress String @db.VarChar(100)
+  city          String @db.VarChar(100)
+  postalCode    String @db.VarChar(100)
+  country       String @db.VarChar(100)
+
+  userUuid String @unique @map("user_uuid") @db.Uuid
+  user     User   @relation(fields: [userUuid], references: [userUuid], onDelete: NoAction, onUpdate: NoAction, map: "address_user_uuid_fkey")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("address")
+}
+
+model Review {
+  reviewUuid String  @id(map: "review_pkey") @default(dbgenerated("uuid_generate_v4()")) @map("review_uuid") @db.Uuid
+  rating     Int     @db.Integer
+  comment    String? @db.Text
+
+  productUuid String  @map("product_uuid") @db.Uuid
+  product     Product @relation(fields: [productUuid], references: [productUuid], onDelete: NoAction, onUpdate: NoAction, map: "review_product_uuid_fkey")
+  userUuid    String  @map("user_uuid") @db.Uuid
+  user        User    @relation(fields: [userUuid], references: [userUuid], onDelete: NoAction, onUpdate: NoAction, map: "review_user_uuid_fkey")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("review")
+}
+
+enum OrderStatusEnum {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ThemeEnum {
+  DARK
+  LIGHT
+  AUTO
+}
+
+enum RoleEnum {
+  USER
+  MANAGER
+  ADMIN
+}

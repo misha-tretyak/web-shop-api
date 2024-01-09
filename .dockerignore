@@ -1,0 +1,7 @@
+.eslintrc.js
+.eslintignore
+.gitignore
+.lintstagedrc
+.prettierignore
+.prettierrc
+pgdata

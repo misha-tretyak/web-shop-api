@@ -1,0 +1,21 @@
+# dependencies
+/node_modules
+
+# outputs
+/dist
+
+# swagger json output
+/swagger.json
+
+# misc
+.eslintcache
+.cache
+.DS_Store
+.env
+*.swp
+tags*
+
+npm-debug.log*
+
+# vscode
+.vscode/settings.json
